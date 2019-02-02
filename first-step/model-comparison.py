@@ -1,0 +1,93 @@
+
+
+
+import pandas as pd
+import numpy as np
+import seaborn as sns
+from sklearn import preprocessing
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn import metrics
+#from sklearn.neural_network import MLPClassifier
+#from scipy import statss
+
+# this uses the german credit data set
+# its a quick intro to get our feet wet with python
+# we will fit a logistic regression and neural network
+# note: the original data is encoded pretty crapily
+# each column has its own special codes and the name aren't included
+# encodings & column description are on the website:
+#  https://archive.ics.uci.edu/ml/datasets/statlog+(german+credit+data)
+# but i didn't feel like going through and redoing the dat set
+#  in a way that makes sense
+# especially since we aren't really doing an analysis of the data 
+#  but just comparing simple model fits
+# this data is the german.data-numeric version
+# the names are just a,b,c,... except for bad_loan
+file_path = "/Users/andrewbates/Desktop/neural-nets/data/german-credit.csv"
+
+credit = pd.read_csv(file_path, sep = ",")
+
+
+credit.shape
+credit.head()
+credit.describe()
+credit.columns
+
+x = credit.iloc[:,1:25]
+y = credit.iloc[:, 25]
+
+y.unique()
+
+# barplot of bad_loan (if the loan is bad or not)
+# ~ 300 good and ~700 bad
+# this seems a bit weird b/c usually # of "bad" is smaller
+# maybe the encoding mentioned at 
+#  https://www4.stat.ncsu.edu/~boos/var.select/german.credit.html
+#  isn't correct?
+sns.countplot(x = credit["bad_loan"], data = credit)
+
+# side-by-side bar chart of variable 'a' and good/vs bad loan
+pd.crosstab(credit.a,credit.bad_loan).plot(kind='bar')
+
+
+# ----- create train/test split and standardize -------
+
+x_train, x_test, y_train, y_test = train_test_split(x, 
+                                                    y,
+                                                    test_size = 0.25,
+                                                    random_state = 42)
+
+# standardize
+scaler = preprocessing.StandardScaler()
+scaler.fit(x_train)
+
+# ----- logistic regression --------------
+# note: by default an L2 penalty is used
+# https://scikit-learn.org/stable/modules/generated/
+#  sklearn.linear_model.LogisticRegression.html
+# also: specify a solver or get a warning!
+logistic = LogisticRegression(solver = 'lbfgs')
+logistic.fit(x_train, y_train)
+logistic_pred = logistic.predict(x_test)
+logistic_confusion = metrics.confusion_matrix(y_test, logistic_pred)
+logistic_confusion # this is just too good!
+
+# turn confusion matrix into percent
+# givng raw counts isn't very helpful
+logistic_confusion / logistic_confusion.astype(np.float).sum(axis=1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
