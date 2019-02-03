@@ -14,6 +14,11 @@ raw
 clean <- raw %>% 
   mutate(bad_loan = ifelse(y == 2, 0, y))
 
-clean %>% select (y, bad_loan)
+# this caused the *perfect* classification problem!
+# clean %>% select (y, bad_loan) 
+
+clean <- clean %>% 
+  select(-y) # original response
+
 
 write_csv(clean, here::here("data", "german-credit.csv"))

@@ -36,8 +36,8 @@ credit.describe()
 credit.columns
 
 # update: changed start of x to 0 b/c python is 0-indexed!
-x = credit.iloc[:,0:25]
-y = credit.iloc[:, 25]
+x = credit.iloc[:,0:24]
+y = credit.iloc[:, 24]
 
 y.unique()
 
@@ -79,16 +79,20 @@ logistic = LogisticRegression(solver = 'lbfgs')
 logistic.fit(x_train, y_train)
 logistic_pred = logistic.predict(x_test)
 logistic_confusion = metrics.confusion_matrix(y_test, logistic_pred)
-logistic_confusion # this is just too good!
+logistic_confusion
 
-# array([[ 72,   0],
-#       [  0, 178]])
+# array([[ 34,  38],
+ #       [ 25, 153]])
 
 
 
 # turn confusion matrix into percent
 # givng raw counts isn't very helpful
 logistic_confusion / logistic_confusion.astype(np.float).sum(axis=1)
+ 
+# array([[0.47222222, 0.21348315],
+#        [0.34722222, 0.85955056]])
+
 
 # classification metrics
 print("Accuracy:",metrics.accuracy_score(y_test, logistic_pred)) 
@@ -102,12 +106,12 @@ print("Recall:",metrics.recall_score(y_test, logistic_pred))
 # let's get probability estimates and evaluate
 logistic_prob_pred = logistic.predict_proba(x_test)[::,1]
 
-# ROC - how is this possible?!
+
 fpr, tpr, thresh = metrics.roc_curve(y_test, logistic_prob_pred,
                                      pos_label = 1)
 plt.plot(fpr, tpr)
 
-metrics.roc_auc_score(y_test, logistic_prob_pred)
+metrics.roc_auc_score(y_test, logistic_prob_pred) # 0.79
  
 
 # ----- neural network -----
@@ -117,20 +121,21 @@ mlp.fit(x_train, y_train)
 
 mlp_pred = mlp.predict(x_test)
 metrics.confusion_matrix(y_test, mlp_pred) 
-# again, too good. this doesn't seem right
 
-# array([[ 71,   1],
-#       [  0, 178]])
+# array([[ 31,  41],
+#        [ 28, 150]])
 
 
 mlp_prob_pred = mlp.predict_proba(x_test)[::,1]
-metrics.roc_auc_score(y_test, mlp_prob_pred)
 
 
 
+fpr, tpr, thresh = metrics.roc_curve(y_test, mlp_prob_pred,
+                                     pos_label = 1)
+plt.plot(fpr, tpr)
 
 
-
+metrics.roc_auc_score(y_test, mlp_prob_pred) # 0.72
 
 
 
