@@ -10,7 +10,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn import metrics
 import matplotlib.pyplot as plt
 from sklearn.neural_network import MLPClassifier
-#from scipy import statss
+
 
 # this uses the german credit data set
 # its a quick intro to get our feet wet with python
@@ -35,7 +35,8 @@ credit.head()
 credit.describe()
 credit.columns
 
-x = credit.iloc[:,1:25]
+# update: changed start of x to 0 b/c python is 0-indexed!
+x = credit.iloc[:,0:25]
 y = credit.iloc[:, 25]
 
 y.unique()
@@ -63,6 +64,11 @@ x_train, x_test, y_train, y_test = train_test_split(x,
 scaler = preprocessing.StandardScaler()
 scaler.fit(x_train)
 
+# update: this was added after working on concrete and realizing a mistake
+x_train = scaler.transform(x_train)
+x_test = scaler.transform(x_test)
+
+
 # ----- logistic regression --------------
 
 # note: by default an L2 penalty is used
@@ -74,6 +80,11 @@ logistic.fit(x_train, y_train)
 logistic_pred = logistic.predict(x_test)
 logistic_confusion = metrics.confusion_matrix(y_test, logistic_pred)
 logistic_confusion # this is just too good!
+
+# array([[ 72,   0],
+#       [  0, 178]])
+
+
 
 # turn confusion matrix into percent
 # givng raw counts isn't very helpful
@@ -107,6 +118,10 @@ mlp.fit(x_train, y_train)
 mlp_pred = mlp.predict(x_test)
 metrics.confusion_matrix(y_test, mlp_pred) 
 # again, too good. this doesn't seem right
+
+# array([[ 71,   1],
+#       [  0, 178]])
+
 
 mlp_prob_pred = mlp.predict_proba(x_test)[::,1]
 metrics.roc_auc_score(y_test, mlp_prob_pred)
