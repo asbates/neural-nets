@@ -1,0 +1,104 @@
+---
+title: "A First Look at Neural Networks"
+subtitle: "Stat 696: Neural Networks"
+author: "Andrew Bates"
+date: "`r Sys.Date()`"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+```
+
+class: inverse
+
+# What I did
+
+<!-- note: -- makes things incremental -->
+--
+
+- Compared neural networks to more traditional models
+
+--
+
+- Classification:
+    - German credit data
+    - Logistic regression with $L_2$ regularization
+    
+--
+
+- Regression:
+    - Concrete strength data
+    - Elastic net regression
+    - 4 neural networks using stochastic gradient descent
+    - Difference: max number iterations
+    
+???
+
+- used either default settings or ones from code provided by Dr. Barr
+
+---
+
+<!-- class: inverse -->
+
+# Why
+--
+
+- Get more familiar with Python
+
+--
+
+- SGD suppposed to need less iterations than gradient descent
+
+--
+
+- Get a feel for how this might effect predictions
+
+
+---
+
+class: inverse
+
+# What I found
+### German Credit
+--
+
+- Both models achieved *perfect* classification!
+
+--
+
+- What happened?
+
+--
+
+    - Pulled data into R for cleaning/recoding
+    
+--
+    
+    - `mutate`d response
+    
+--
+    
+    - Forgot to drop the original variable!
+
+--
+
+- After fix
+
+
+
+---
+
+class: center, middle
+
+# Thanks!
+
+Slides created via the R package [**xaringan**](https://github.com/yihui/xaringan).
+
+The chakra comes from [remark.js](https://remarkjs.com), [**knitr**](http://yihui.name/knitr), and [R Markdown](https://rmarkdown.rstudio.com).
