@@ -8,7 +8,8 @@ from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn import metrics
-#from sklearn.neural_network import MLPClassifier
+import matplotlib.pyplot as plt
+from sklearn.neural_network import MLPClassifier
 #from scipy import statss
 
 # this uses the german credit data set
@@ -63,6 +64,7 @@ scaler = preprocessing.StandardScaler()
 scaler.fit(x_train)
 
 # ----- logistic regression --------------
+
 # note: by default an L2 penalty is used
 # https://scikit-learn.org/stable/modules/generated/
 #  sklearn.linear_model.LogisticRegression.html
@@ -77,11 +79,37 @@ logistic_confusion # this is just too good!
 # givng raw counts isn't very helpful
 logistic_confusion / logistic_confusion.astype(np.float).sum(axis=1)
 
+# classification metrics
+print("Accuracy:",metrics.accuracy_score(y_test, logistic_pred)) 
+print("Precision:",metrics.precision_score(y_test, logistic_pred)) 
+print("Recall:",metrics.recall_score(y_test, logistic_pred))
 
 
+# apparently, the predict() method gives class predictions, not probabilities
+# this is a bit weird b/c the logistic response is P(y = 1 | x)
+# maybe this is to conform with other classifiers?
+# let's get probability estimates and evaluate
+logistic_prob_pred = logistic.predict_proba(x_test)[::,1]
 
+# ROC - how is this possible?!
+fpr, tpr, thresh = metrics.roc_curve(y_test, logistic_prob_pred,
+                                     pos_label = 1)
+plt.plot(fpr, tpr)
 
+metrics.roc_auc_score(y_test, logistic_prob_pred)
+ 
 
+# ----- neural network -----
+
+mlp = MLPClassifier(hidden_layer_sizes = (10, 10), max_iter = 500)
+mlp.fit(x_train, y_train)
+
+mlp_pred = mlp.predict(x_test)
+metrics.confusion_matrix(y_test, mlp_pred) 
+# again, too good. this doesn't seem right
+
+mlp_prob_pred = mlp.predict_proba(x_test)[::,1]
+metrics.roc_auc_score(y_test, mlp_prob_pred)
 
 
 
