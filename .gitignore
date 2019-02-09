@@ -5,3 +5,8 @@
 .DS_Store
 
 .idea/
+
+# for c++ files
+*.o
+*.so
+*.dll
