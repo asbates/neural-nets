@@ -10,3 +10,8 @@
 *.o
 *.so
 *.dll
+
+
+# knitr cache folders
+*_cache/
+*_files/
