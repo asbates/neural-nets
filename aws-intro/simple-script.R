@@ -1,6 +1,9 @@
 
 # this is a simple script just to show some code running on AWS
 
+# this is a change made from AWS
+
+
 install.packages("tidyverse")
 library(tidyverse)
 
