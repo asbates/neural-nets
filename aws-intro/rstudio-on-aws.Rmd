@@ -90,7 +90,31 @@ knitr::include_graphics(here("aws-intro", "images", "rstudio-home.png"))
     - Go to `Instance State` and click `Terminate`.
 
 
+### Bonus
 
+[Hanjo Odendaal](https://www.daeconomist.com/#contact), a PhD student at Stellenbosch University has added to the above AMI by installing H2O and a few R packages. The setup is almost the same as above.
+
+The differences:
+
+1. Go to your EC2 dashboard.
+
+2. In the upper right select `US East (Ohio)`.
+
+3. Go to the `AMIs` page of your dashboard (left hand side).
+
+4. Select `Public images` at the left of the search bar.
+
+5. Type `ami-0157656a8c5b46458` into the search bar.
+
+6. Follow the steps above to launch an instance.
+
+7. Log in to RStudio server as follows:
+    - Username: rstudio
+    - Password: rstudioh2ocaret
+    
+8. Continue as above.
+
+When you log in you should see the same `Welcome.R` file. You should also see a few more `.R` files containing a tutorial on using H2O with some other R packages.
 
 
 

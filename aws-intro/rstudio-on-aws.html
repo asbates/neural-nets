@@ -258,13 +258,33 @@ $(document).ready(function () {
 <div id="cleanup" class="section level3">
 <h3>Cleanup</h3>
 <ol style="list-style-type: decimal">
-<li><p>Go to the <em>Instances</em> page of your EC2 dashboard</p></li>
+<li><p>Go to the <em>Instances</em> page of your EC2 dashboard.</p></li>
 <li>Make sure your instance in checked and then
 <ul>
 <li>Click <code>Actions</code>.</li>
 <li>Go to <code>Instance State</code> and click <code>Terminate</code>.</li>
 </ul></li>
 </ol>
+</div>
+<div id="bonus" class="section level3">
+<h3>Bonus</h3>
+<p><a href="https://www.daeconomist.com/#contact">Hanjo Odendaal</a>, a PhD student at Stellenbosch University has added to the above AMI by installing H2O and a few R packages. The setup is almost the same as above.</p>
+<p>The differences:</p>
+<ol style="list-style-type: decimal">
+<li><p>Go to your EC2 dashboard.</p></li>
+<li><p>In the upper right select <code>US East (Ohio)</code>.</p></li>
+<li><p>Go to the <code>AMIs</code> page of your dashboard (left hand side).</p></li>
+<li><p>Select <code>Public images</code> at the left of the search bar.</p></li>
+<li><p>Type <code>ami-0157656a8c5b46458</code> into the search bar.</p></li>
+<li><p>Follow the steps above to launch an instance.</p></li>
+<li>Log in to RStudio server as follows:
+<ul>
+<li>Username: rstudio</li>
+<li>Password: rstudioh2ocaret</li>
+</ul></li>
+<li><p>Continue as above.</p></li>
+</ol>
+<p>When you log in you should see the same <code>Welcome.R</code> file. You should also see a few more <code>.R</code> files containing a tutorial on using H2O with some other R packages.</p>
 </div>
 
 
