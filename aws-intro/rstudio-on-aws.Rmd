@@ -1,0 +1,98 @@
+---
+title: "RStudio on AWS"
+author: "Andrew Bates, Jesse Coronado, Stewart Hoelscher"
+date: "2/28/2019"
+output: html_document
+---
+
+This document should help you get set up running RStudio on Amazon Web Services. We try to provide minimal instructions because most of the steps are self explanatory and too much detail can bog you down. In a number of the steps you can set different options. We don't talk about most of them to keep things simple. You can adjust these options after you learn more.
+
+
+
+### Setup
+
+1. Sign up for an AWS account with your `@sdsu.edu` email at [https://aws.amazon.com](https://aws.amazon.com).
+
+2. Sign up for an AWS Educate account with your `@sdsu.edu` email at [https://aws.amazon.com/education/awseducate/](https://aws.amazon.com/education/awseducate/). This gets you free credits. If our a veteran you also get access to more free AWS trainings.
+
+
+### Launch A Virtual Machine
+
+1. Go to [http://www.louisaslett.com/RStudio_AMI/](http://www.louisaslett.com/RStudio_AMI/) and click the link for *US West, N. California*. 
+    - This sets you up with an Amazon Machine Image (AMI) made for R users.
+    - It's basically a specification of a computer with a bunch of R related stuff installed.
+    - It's built and maintained by Louis Aslett, a professor at Durham University.
+    
+You should see something like the following image.
+
+```{r ec2-instance-type, echo = FALSE, message = FALSE}
+library(here)
+knitr::include_graphics(here("aws-intro", "images", "ec2-instance-type.png"))
+```
+
+2. Pick the machine you want to use (based on # CPU's, memory, etc.)
+
+3. Click `Next: Configure Instance Details`.
+
+4. Click `Next: Add Storage`.
+
+5. Click `Next: Add Tags`.
+
+6. Click `Next: Configure Security Group`.
+
+7. Configure the Security Group which details how you will be able to acess the machine.
+    - We won't do *SSH* for now. You can look into that later.
+    - Under `Type` select *HTTP*.
+    - Make sure `Port Range` is set to *80*.
+    - Under `Source` select *MY IP*. This allows access only from your IP address.
+    - If you like, give this rule a description and change the security group name.
+    - Click `Review and Launch`. If you don't have *ssh* setup you will get a warning. If you've configured as directed so far don't worry.
+    - Click `Launch`. Check *Proceed without a key pair* and acknowledge.
+    - Click `Launch Instances`.
+    - Click `View Instances`.
+    - After the first time you can click *select an **existing** security group* so you don't have to repeat all of this.
+    
+
+### Connect to the Machine
+
+You should now be on the *Instances* page on your EC2 console. Once you see *running* with a green dot under the `Instance State` column, you can connect to the machine.
+
+1. Copy the address next to `Public DNS (IPv4)` and paste it into a new browser window. You should see something like the following image.
+
+```{r rstudio-login, echo = FALSE}
+knitr::include_graphics(here("aws-intro", "images", "rstudio-server-login.png"))
+```
+
+2. Go back to the *Instances* tab and copy the `Instance ID`.
+
+3. Login to the RStudio server as follows:
+  - Username: rstudio
+  - Password: Instance ID
+  
+You should see something like the image below. 
+
+```{r rstudio-home, echo = FALSE}
+knitr::include_graphics(here("aws-intro", "images", "rstudio-home.png"))
+```
+
+4. Follow the instructions in the `Welcome.R` file to change your RStudio server password. Click the arrow next to `rstudio` in the upper right corner (see the purple box in above image).
+
+5. Log back in with your new password.
+
+6. Do some work.
+
+### Cleanup
+
+1. Go to the *Instances* page of your EC2 dashboard.
+
+2. Make sure your instance in checked and then
+    - Click `Actions`.
+    - Go to `Instance State` and click `Terminate`.
+
+
+
+
+
+
+
+
