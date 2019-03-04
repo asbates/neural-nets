@@ -1,0 +1,71 @@
+---
+title: "A First Look at Keras"
+subtitle: "Stat 696"
+author: "Andrew Bates"
+date: "`r Sys.Date()`"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+```
+
+
+  ```{r, echo = FALSE}
+knitr::include_graphics("keras-logo-2018-large-1200.png")
+```
+
+### What Is Keras
+
+
+From [the documentation](https://keras.io):
+
+  Keras is a high-level neural networks API, written in Python and capable of running on top of TensorFlow, CNTK, or Theano.
+  
+---
+
+  ```{r, echo = FALSE}
+knitr::include_graphics("landing_icon-tf_logo_halo_480.jpg")
+```
+
+
+### What is TensorFlow
+
+From [the website](https://www.tensorflow.org):
+
+  TensorFlow is an open source software library for high performance numerical computation. Its flexible architecture allows easy deployment of computation across a variety of platforms (CPUs, GPUs, TPUs), and from desktops to clusters of servers to mobile and edge devices.
+
+
+---
+
+### What Does That Mean
+
+TensorFlow does math good.
+
+Keras uses TensorFlow to do the math for neural networks.
+
+Both can be use from Python and R.
+
+---
+
+### What Keras Look Like in Python
+
+```{python, eval = FALSE}
+from keras.models import Sequential
+from keras.layers import Dense
+
+model = Sequential()
+
+```
+
+
+
+
+
+
