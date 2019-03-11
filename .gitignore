@@ -15,3 +15,6 @@
 # knitr cache folders
 *_cache/
 *_files/
+
+# sd 311 data b/c it's kind of big
+/data/get_it_done_2018_requests_datasd.csv
