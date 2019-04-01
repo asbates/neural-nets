@@ -4,8 +4,10 @@ library(here)
 library(tidyverse)
 library(quanteda)
 library(keras)
+library(yardstick)
 
 
+# ------- setup ----------
 get_done_raw <- read_csv(here("data", "get_it_done_2018_requests_datasd.csv"))
 
 # remove rows with NA
@@ -15,6 +17,13 @@ get_done <- get_done_raw %>%
 get_done <- get_done %>%
   select(service_request_id, service_name, public_description)
 
+# what categories of issues are there?
+get_done %>% 
+  count(service_name, sort = TRUE) %>% 
+  View()
+
+# let's just look at categories with more than 5000 complaints
+# we will also exclude 'Other' because that doesn't tell us what the issue is
 keepers <- c("72 Hour Violation", "Graffiti Removal",
              "Pothole", "Illegal Dumping",
              "Sidewalk Repair Issue", "Street Light Out")
@@ -22,21 +31,16 @@ keepers <- c("72 Hour Violation", "Graffiti Removal",
 get_done <- get_done %>%
   filter(service_name %in% keepers)
 
+# ------- fun with quanteda -----
 
-# rm(get_done_raw)
-
-# take a subset for now until figure things out
-set.seed(42)
-get_done_small <- get_done %>% sample_n(100)
-
-# need to specify a document id and text column to corpus()
+# create a quanteda::corpus object
+# corpus() likes specific naming schemes for a document and associated text
 # both need to be characters
-get_done_corp <- get_done_small %>% 
+get_done_corp <- get_done %>% 
   mutate_if(is.numeric, as.character) %>% 
   rename(doc_id = service_request_id,
-         text = public_description)
-
-get_done_corp <- corpus(get_done_corp)
+         text = public_description) %>% 
+  corpus()
 
 get_done_corp
 summary(get_done_corp)
@@ -46,102 +50,137 @@ summary(get_done_corp)
 # corpus should be as is. no processing, etc.
 
 # extract the texts from the corpus
-texts(get_done_corp)
+texts(get_done_corp)[1]
+texts(get_done_corp)[2]
 
-# plot summary information. e.g. number of Tokens in each document
-
-corp_summary <- summary(get_done_corp)
-
-# this isn't very good. really should sort
-corp_summary %>% 
-  ggplot(aes(Text, Tokens)) +
-  geom_col() +
-  facet_wrap(~service_name)
-
-# looks like a number of people use @ for 'at'
-# maybe replace @ with 'at'?
-# for now let's just remove them since at is likely a stopword anyways
-get_done$public_description[str_detect(get_done$public_description, "@")]
-
-# the quick start guide recommends (or implies) most people don't want to
-# use `tokens()`
-# but i think we do in this case
-
-# play around with these options on a few specific examples
+# several options available to automatically remove certain types of tokens
 tokens(get_done_corp,
        remove_numbers = TRUE,
        remove_punct = TRUE,
        remove_symbols = TRUE,
        remove_twitter = TRUE)[1:5]
 
-
-
-
-# can pass all these options to `dfm()` as well
-# but how to get from corpus -> tokenized -> dfm ?
-
-# wait, `x` in `dfm(x, ......)` can be of class "tokens"
-
-# this isn't right
-get_done_small %>% 
-  mutate(tokenized = tokens(get_done_corp,
-                            remove_numbers = TRUE,
-                            remove_punct = TRUE,
-                            remove_symbols = TRUE,
-                            remove_twitter = TRUE)) %>% 
-  View()
-
-tokenized <- tokens(get_done_corp,
-                    remove_numbers = TRUE,
-                    remove_punct = TRUE,
-                    remove_symbols = TRUE,
-                    remove_twitter = TRUE)
-class(tokenized)
-
-# for now let's just make a dfm and specify the `tokens` arguments
-
+# alternatively, we can go straight to a matrix and have the options passed to
+#  tokens()
+# dfm() creates a document-feature matrix
 get_done_dfm <- dfm(get_done_corp,
-                    stem = TRUE,
+                    tolower = TRUE,
                     remove = stopwords("english"),
+                    # below args passed to tokens()
                     remove_numbers = TRUE,
                     remove_punct = TRUE,
                     remove_symbols = TRUE,
                     remove_twitter = TRUE)
 
-# this is slow b/c size. don't do this get_done_dfm %>% View()
 
 get_done_dfm
-class(get_done_dfm)
+
+get_done_dfm[1:10, 1:10]
 
 # most common words
+# graffiti' and '72 hour violation' should be easy to classify
 topfeatures(get_done_dfm, 10)
 
-textplot_wordcloud(get_done_dfm)
+textplot_wordcloud(get_done_dfm,
+                   max_words = 200,
+                   min_count = 5)
 
-# based on these two things 'graffiti' and '72 hour violation' should be easy
+# tf-idf and feature co-occurence matrices
+dfm_tfidf(get_done_dfm)[1:10, 1:10]
+get_done_fcm <- fcm(get_done_dfm)[1:10, 1:10]
 
-head(get_done_dfm[, 1:50]) %>% View()
-rownames(get_done_dfm) # noooo!
 
-# matrix looks sort of diagonal
-# e.g. ones in first row then ones in second (diagonally)
+# -------- modeling -------
 
-# see what tfidf looks like
-get_done_tfidf <- dfm_tfidf(get_done_dfm)
+# remove features (terms) that only appear in one document
+# this cuts the features down by about 1/2
+get_done_trimmed <- dfm_trim(get_done_dfm, min_docfreq = 2)
 
-head(get_done_tfidf[, 1:50]) %>% View()
+set.seed(42)
+train_index <- sample(nrow(get_done_trimmed),
+                      size = 0.8 * nrow(get_done_trimmed))
+train_dfm <- get_done_trimmed[train_index, ]
+test_dfm <- get_done_trimmed[-train_index, ]
 
-# see `text_model_nb` for use as a baseline
+train_labels <- get_done %>% 
+  slice(train_index) %>% 
+  pull(service_name)
 
-# feature names. i.e. all the words
-featnames(get_done_dfm)
+test_labels <- get_done %>% 
+  slice(-train_index) %>% 
+  pull(service_name)
 
-# now that have feature matrix, need to take this sparse representation
-#  and make it less sparse
-# look at h2o's word2vec
-# i think the only other (reasonable) option is a keras embedding layer
 
-# see also keras' tokenizer
+# keras needs labels in a special form
+# first recode to integers then to one hot matrix
+# this is ugly but couldn't find a better way
+train_labels_int <- numeric(length(train_labels))
+for (i in seq_along(train_labels)) {
+  
+  if (train_labels[i] == "72 Hour Violation") train_labels_int[i] = 0
+  if (train_labels[i] == "Graffiti Removal") train_labels_int[i] = 1
+  if (train_labels[i] == "Pothole") train_labels_int[i] = 2
+  if (train_labels[i] == "Illegal Dumping") train_labels_int[i] = 3
+  if (train_labels[i] == "Sidewalk Repair Issue") train_labels_int[i] = 4
+  if (train_labels[i] == "Street Light Out") train_labels_int[i] = 5
+  
+}
+
+test_labels_int <- numeric(length(test_labels))
+for (i in seq_along(test_labels)) {
+  
+  if (test_labels[i] == "72 Hour Violation") test_labels_int[i] = 0
+  if (test_labels[i] == "Graffiti Removal") test_labels_int[i] = 1
+  if (test_labels[i] == "Pothole") test_labels_int[i] = 2
+  if (test_labels[i] == "Illegal Dumping") test_labels_int[i] = 3
+  if (test_labels[i] == "Sidewalk Repair Issue") test_labels_int[i] = 4
+  if (test_labels[i] == "Street Light Out") test_labels_int[i] = 5
+  
+}
+
+train_labels_one_hot <- to_categorical(train_labels_int, num_classes = 6)
+test_labels_one_hot <- to_categorical(test_labels_int, num_classes = 6)
+
+# baseline: naive bayes
+naive_bayes <- textmodel_nb(train_dfm, train_labels,
+                           distribution = "multinomial")
+
+naive_bayes
+summary(naive_bayes)
+
+nb_test_pred <- predict(naive_bayes, newdata = test_dfm)
+
+
+tibble(truth = as.factor(train_labels),
+       estimate = predict(naive_bayes)) %>% 
+  accuracy(truth, estimate)
+
+# start simple and work our way up
+two_layer <- keras_model_sequential() %>% 
+  layer_dense(units = 256,
+              activation = "relu",
+              input_shape = ncol(train_dfm)) %>% 
+  layer_dense(units = 128,
+              activation = "relu") %>% 
+  layer_dense(units = 6,
+              activation = "softmax")
+
+two_layer %>% 
+  compile(
+    optimizer = "rmsprop",
+    loss = "categorical_crossentropy",
+    metrics = c("accuracy")
+  )
+
+two_layer_hist <- two_layer %>% 
+  fit(
+    train_dfm,
+    train_labels_one_hot,
+    epochs = 10,
+    batch_size = 512,
+    validation_split = 0.2
+  )
+
 
 
 
