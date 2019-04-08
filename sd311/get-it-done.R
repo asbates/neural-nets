@@ -5,9 +5,11 @@ library(tidyverse)
 library(quanteda)
 library(keras)
 library(yardstick)
+library(rsample)
 
 
 # ------- setup ----------
+
 get_done_raw <- read_csv(here("data", "get_it_done_2018_requests_datasd.csv"))
 
 # remove rows with NA
@@ -31,7 +33,22 @@ keepers <- c("72 Hour Violation", "Graffiti Removal",
 get_done <- get_done %>%
   filter(service_name %in% keepers)
 
-# ------- fun with quanteda -----
+# what does distribution of issues look like
+get_done %>% 
+  count(service_name, sort = TRUE) %>% 
+  mutate(prop = 100 * n / sum(n))
+
+# prep work for later use
+# keras needs factors to have numeric encoding starting with 0
+get_done <- get_done %>% 
+  mutate(service_name = fct_infreq(service_name),
+         service_numeric = as.numeric(service_name) - 1)
+
+
+
+# =======================================
+# ====== overview of quanteda ===========
+# =======================================
 
 # create a quanteda::corpus object
 # corpus() likes specific naming schemes for a document and associated text
@@ -73,13 +90,18 @@ get_done_dfm <- dfm(get_done_corp,
                     remove_twitter = TRUE)
 
 
-get_done_dfm
+get_done_dfm # 24k words
 
 get_done_dfm[1:10, 1:10]
 
 # most common words
 # graffiti' and '72 hour violation' should be easy to classify
 topfeatures(get_done_dfm, 10)
+
+# street graffiti   parked reported      car       st  vehicle 
+# 14248    14190    13928    10168     8291     6882     6781 
+# sidewalk    weeks    front 
+# 6516     5810     5315 
 
 textplot_wordcloud(get_done_dfm,
                    max_words = 200,
@@ -90,78 +112,148 @@ dfm_tfidf(get_done_dfm)[1:10, 1:10]
 get_done_fcm <- fcm(get_done_dfm)[1:10, 1:10]
 
 
-# -------- modeling -------
+# ============================
+# ===== modeling set up ======
+# ============================
 
 # remove features (terms) that only appear in one document
 # this cuts the features down by about 1/2
 get_done_trimmed <- dfm_trim(get_done_dfm, min_docfreq = 2)
 
+get_done_trimmed  # 12k words
+
+# split into train/test according to issue type
+#  so that classes are balanced across train/test sets
+# just using 'initial_split' to get indices because we really need to 
+#  split the dfm 'get_done_trimmed' but it doesn't have the response 
 set.seed(42)
-train_index <- sample(nrow(get_done_trimmed),
-                      size = 0.8 * nrow(get_done_trimmed))
+split_obj <- initial_split(get_done, strata = "service_name")
+train_index <- split_obj$in_id
+
 train_dfm <- get_done_trimmed[train_index, ]
 test_dfm <- get_done_trimmed[-train_index, ]
 
 train_labels <- get_done %>% 
   slice(train_index) %>% 
-  pull(service_name)
+  select(service_name, service_numeric)
 
 test_labels <- get_done %>% 
   slice(-train_index) %>% 
-  pull(service_name)
+  select(service_name, service_numeric)
 
 
 # keras needs labels in a special form
-# first recode to integers then to one hot matrix
-# this is ugly but couldn't find a better way
-train_labels_int <- numeric(length(train_labels))
-for (i in seq_along(train_labels)) {
-  
-  if (train_labels[i] == "72 Hour Violation") train_labels_int[i] = 0
-  if (train_labels[i] == "Graffiti Removal") train_labels_int[i] = 1
-  if (train_labels[i] == "Pothole") train_labels_int[i] = 2
-  if (train_labels[i] == "Illegal Dumping") train_labels_int[i] = 3
-  if (train_labels[i] == "Sidewalk Repair Issue") train_labels_int[i] = 4
-  if (train_labels[i] == "Street Light Out") train_labels_int[i] = 5
-  
-}
+train_labels_one_hot <- to_categorical(train_labels$service_numeric,
+                                       num_classes = 6)
+test_labels_one_hot <- to_categorical(test_labels$service_numeric,
+                                      num_classes = 6)
+# =======================
+# ===== modeling ========
+# =======================
 
-test_labels_int <- numeric(length(test_labels))
-for (i in seq_along(test_labels)) {
-  
-  if (test_labels[i] == "72 Hour Violation") test_labels_int[i] = 0
-  if (test_labels[i] == "Graffiti Removal") test_labels_int[i] = 1
-  if (test_labels[i] == "Pothole") test_labels_int[i] = 2
-  if (test_labels[i] == "Illegal Dumping") test_labels_int[i] = 3
-  if (test_labels[i] == "Sidewalk Repair Issue") test_labels_int[i] = 4
-  if (test_labels[i] == "Street Light Out") test_labels_int[i] = 5
-  
-}
-
-train_labels_one_hot <- to_categorical(train_labels_int, num_classes = 6)
-test_labels_one_hot <- to_categorical(test_labels_int, num_classes = 6)
-
-# baseline: naive bayes
-naive_bayes <- textmodel_nb(train_dfm, train_labels,
+# baseline: naive bayes via quanteda
+naive_bayes <- textmodel_nb(train_dfm, train_labels$service_name,
                            distribution = "multinomial")
 
 naive_bayes
 summary(naive_bayes)
 
-nb_test_pred <- predict(naive_bayes, newdata = test_dfm)
-
-
-tibble(truth = as.factor(train_labels),
+# training set accuracy
+tibble(truth = train_labels$service_name,
        estimate = predict(naive_bayes)) %>% 
-  accuracy(truth, estimate)
+  accuracy(truth, estimate)   # 95.7
 
-# start simple and work our way up
+
+
+tibble(truth = test_labels$service_name,
+       estimate = predict(naive_bayes, newdata = test_dfm)) %>% 
+  accuracy(truth, estimate)  # 94.7
+
+# start simple and work our way up if needed
+# first use single hidden layer network
+one_layer <- keras_model_sequential() %>% 
+  layer_dense(units = 512,
+              activation = "relu",
+              input_shape = ncol(train_dfm)) %>% 
+  layer_dense(units = 6,
+              activation = "softmax")
+
+one_layer %>% 
+  compile(
+    optimizer = "rmsprop",
+    loss = "categorical_crossentropy",
+    metrics = c("accuracy")
+  )
+
+# just train for 30 epochs in the interest of time
+# and naive bayes did well so probably don't need to train that long anyways
+one_layer_hist <- one_layer %>% 
+  fit(
+    train_dfm,
+    train_labels_one_hot,
+    epochs = 30,
+    batch_size = 512,
+    validation_split = 0.2
+  )
+
+# non-interactive ggplot
+plot(one_layer_hist)
+
+# validation accuracy drops right away
+# let's re-train with 2 epochs
+one_layer_short <- keras_model_sequential() %>% 
+  layer_dense(units = 512,
+              activation = "relu",
+              input_shape = ncol(train_dfm)) %>% 
+  layer_dense(units = 6,
+              activation = "softmax")
+
+one_layer_short %>% 
+  compile(
+    optimizer = "rmsprop",
+    loss = "categorical_crossentropy",
+    metrics = c("accuracy")
+  )
+
+one_layer_short %>% 
+  fit(
+    train_dfm,
+    train_labels_one_hot,
+    epochs = 2,
+    batch_size = 512
+  )
+
+one_layer_short %>% 
+  evaluate(train_dfm, train_labels_one_hot)
+# $loss
+# [1] 0.08755
+# 
+# $acc
+# [1] 0.9758066
+
+one_layer_short %>% 
+  evaluate(test_dfm, test_labels_one_hot)
+
+# $loss
+# [1] 0.1482173
+# 
+# $acc
+# [1] 0.9573975
+
+# barely better than naive bayes
+
+
+# add some complexity with one more dense layer
+# this is probably unnecessary. it's really just for fun
+# we will also use dropout
 two_layer <- keras_model_sequential() %>% 
   layer_dense(units = 256,
               activation = "relu",
               input_shape = ncol(train_dfm)) %>% 
+  layer_dropout(rate = 0.5) %>% 
   layer_dense(units = 128,
               activation = "relu") %>% 
+  layer_dropout(rate = 0.5) %>% 
   layer_dense(units = 6,
               activation = "softmax")
 
@@ -176,11 +268,55 @@ two_layer_hist <- two_layer %>%
   fit(
     train_dfm,
     train_labels_one_hot,
-    epochs = 10,
+    epochs = 30,
     batch_size = 512,
     validation_split = 0.2
   )
 
+plot(two_layer_hist)
 
+# similar to before model starts to overfit right away
+two_layer_short <- keras_model_sequential() %>% 
+  layer_dense(units = 256,
+              activation = "relu",
+              input_shape = ncol(train_dfm)) %>% 
+  layer_dropout(rate = 0.5) %>% 
+  layer_dense(units = 128,
+              activation = "relu") %>% 
+  layer_dropout(rate = 0.5) %>% 
+  layer_dense(units = 6,
+              activation = "softmax")
+
+two_layer_short %>% 
+  compile(
+    optimizer = "rmsprop",
+    loss = "categorical_crossentropy",
+    metrics = c("accuracy")
+  )
+
+two_layer_short %>% 
+  fit(
+    train_dfm,
+    train_labels_one_hot,
+    epochs = 4,
+    batch_size = 512
+  )
+
+two_layer_short %>% evaluate(train_dfm, train_labels_one_hot)
+# $loss
+# [1] 0.07588009
+# 
+# $acc
+# [1] 0.9782203
+
+two_layer_short %>% evaluate(test_dfm, test_labels_one_hot)
+# $loss
+# [1] 0.1522364
+# 
+# $acc
+# [1] 0.9586421
+
+# again, this is basically the same as naive bayes
+# takeaway: neural networks are overkill for this problem
 
 
