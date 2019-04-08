@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>San Diego 311: Predicting Issue Type From User Description</title>
+    <meta charset="utf-8">
+    <meta name="author" content="Andrew Bates" />
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/default-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# San Diego 311: Predicting Issue Type From User Description
+## Stat 696: Machine Learning With Neural Networks
+### Andrew Bates
+
+---
+
+
+
+
+
+# San Diego 311 - Get It Done
+
+&lt;img src="get-it-done-app.png" width="1560" /&gt;
+
+- City of San Diego's [Get It Done app](https://www.sandiego.gov/get-it-done) allows the public to
+    - Apply for a business license, parking permit, ...
+    - Pay for library fees, parking tickets, ...
+    - Request a new traffic sign, street sweeping, ...
+    - **Report a complaint: graffiti, potholes, ...**
+
+We will be focusing on the last item
+
+---
+# The Data
+
+Obtained from the [San Diego Open Data Portal](https://data.sandiego.gov)
+
+Get It Done [requests from 2018](https://data.sandiego.gov/datasets/get-it-done-311/)
+
+Narrowed to the top complaint types:
+
+.pull-left[
+- 72 hour violation (parking)
+- Graffiti removal
+- Potholes
+]
+
+.pull-right[
+- Illegal dumping
+- Sidewalk repair
+- Street light out
+]
+
+???
+about 70,000 observations after filtering
+
+---
+
+&lt;img src="wordcloud.png" width="821" /&gt;
+
+???
+top 200 words
+
+that appear at least 5 times
+
+
+---
+# Data Processing
+
+- Done with the [quanteda](https://quanteda.io) package
+- Removed stopwords, punctuation, symbols, Twitter characters (@, #)
+- Removed words that only appeared in a single document
+- Created a document-feature matrix:
+    - Each row is a document
+    - Each column is a word
+    
+
+???
+"document" here means a description of the issue
+
+reduced number of features (words) from 24k to 12k
+
+---
+# The Models
+
+- Naive Bayes classifier as a baseline
+- Two neural networks:
+    - Single hidden layer (512 units)
+    - Two hidden layers (256, 128 units, 50% dropout)
+
+
+???
+naive bayes via `quanteda`
+
+neural nets via `keras` and `tensorflow`
+
+---
+# The Results
+
+
+| Model | Test set accuracy
+|:---|---:|
+|Naive Bayes | 94.7% 
+| Single layer NN | 95.7% 
+| Two layer NN | 95.9% 
+
+
+
+Naive Bayes did remarkably well
+
+Neural networks didn't do much better
+
+???
+actually, neural nets overfit almost immediately
+
+final training for single layer only used 2 &amp; 4 epochs
+
+---
+# Takeaway
+
+Neural networks can easily be overkill
+
+Even on problems they are supposed to be good at (i.e. text)
+
+Try something simple first
+
+---
+
+class: center, middle
+
+# Thanks!
+
+Slides created via the R package [**xaringan**](https://github.com/yihui/xaringan).
+
+Code and slides available at [https://github.com/asbates/neural-nets/tree/master/sd311](https://github.com/asbates/neural-nets/tree/master/sd311)
+    </textarea>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function() {
+  var d = document, s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})();</script>
+
+<script>
+(function() {
+  var i, text, code, codes = document.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+})();
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
