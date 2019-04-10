@@ -6,4 +6,5 @@ This folder contains the materials for a project I did using data from the City 
 
 For this project, I used the text description provided by the resident to predict the type of complaint (e.g. graffiti). The main purpose of this project was to familiarize myself with text processing. To that end, I learned about transforming raw text into numeric vectors with the [quanteda](https://quanteda.io) R package and modeling the transformed data with neural networks in [Keras](https://keras.io). Along the way I learned about the cloud computing service [Paperspace](https://www.paperspace.com) which I used to conduct the analysis.
 
+The file containing the code I used to run the final analysis is `get-it-done.R`. I also wrote a summary, `pres.html`, to present the work to my class.
 
