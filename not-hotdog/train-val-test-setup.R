@@ -75,6 +75,11 @@ for (i in (num_train_not_hotdog +1): num_not_hotdog) {
 
 names(not_hotdog_images) <- not_hotdog_files
 
+# prints the first hot dog image along with some summary info
+# hotdog_images[[1]]
+# format    width height colorspace matte filesize density
+# 1   JPEG   512    512       sRGB  FALSE    43577   72x72
+
 
 # =========================================
 # ====== write out with new structure =====
