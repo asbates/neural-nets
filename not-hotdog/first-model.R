@@ -3,7 +3,10 @@
 #  working Shiny app going
 # see Deep Learning with R chapter 5.2.3/4 which is where this code was derived
 
+# for some reason I can't save a model unless reticulate is loaded as well
+# otherwise, get complaint about can't find h5py
 library(keras)
+library(reticulate)
 
 base_dir <- "~/Desktop/hotdog-data"
 train_dir <- file.path(base_dir, "train")
@@ -140,5 +143,34 @@ plot(model_3conv_hist)
 # h5py is installed but it's prbably something about the python path
 # model %>% save_model_hdf5("not-hotdog/models/2019-04-22-2conv.h5")
 
-# come back later and figure out how to do this
+# model %>% save_model_hdf5("not-hotdog/models/2019-04-22-2conv.h5")
+# model %>% save_model_hdf5("not-hotdog/models/2019-04-22-3conv.h5")
+
+# apparently the models are too big to save to github
+# model %>% save_model_hdf5("~/Desktop/hotdog_models/2019-04-22-2conv.h5")
+# model %>% save_model_hdf5("~/Desktop/hotdog_models/2019-04-22-3conv.h5")
+
+
+# # example of how to get and work with predictions
+# img <- image_load("~/Desktop/hotdog-data/test/hot_dog/1017226.jpg")
+# img_tensor <- image_to_array(img)
+# img_tensor <- array_reshape(img_tensor, c(1, 256, 256, 3))
+# 
+# magick_img <- magick::image_read("~/Desktop/hotdog-data/test/hot_dog/1017226.jpg")
+# magick_img
+# # turns out the images are not all the same shape!
+# 
+# # but can use target_size argument in keras::image_load()
+# img <- image_load("~/Desktop/hotdog-data/test/hot_dog/1017226.jpg",
+#                   target_size = c(256, 256))
+# img_tensor <- image_to_array(img)
+# img_tensor <- array_reshape(img_tensor, c(1, 256, 256, 3))
+# model %>% predict_proba(img_tensor)
+# 
+# # not hot dog
+# img <- image_load("~/Desktop/hotdog-data/test/not_hot_dog/103010.jpg",
+#                   target_size = c(256, 256))
+# img_tensor <- image_to_array(img)
+# img_tensor <- array_reshape(img_tensor, c(1, 256, 256, 3))
+# model %>% predict_proba(img_tensor)
 
